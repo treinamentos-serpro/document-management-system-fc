@@ -60,6 +60,7 @@ export default function DocumentList({ documents, isLoading, listError, onRetry,
             <th scope="col">Tipo</th>
             <th scope="col">Tamanho</th>
             <th scope="col">Enviado em</th>
+            <th scope="col">Owner</th>
             <th scope="col"><span className="visually-hidden">Ações</span></th>
           </tr>
         </thead>
@@ -73,6 +74,7 @@ export default function DocumentList({ documents, isLoading, listError, onRetry,
               <td data-label="Tipo"><span className="file-type">{getFileType(document)}</span></td>
               <td className="table-muted" data-label="Tamanho">{formatFileSize(document.size)}</td>
               <td className="table-muted" data-label="Enviado em">{formatDate(document.uploadedAt)}</td>
+              <td className="table-muted" data-label="Owner">{document.owner}</td>
               <td className="document-action" data-label="Ação">
                 <DownloadButton document={document} onError={onDownloadError} />
               </td>
