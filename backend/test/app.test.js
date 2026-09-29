@@ -8,6 +8,7 @@ const { once } = require('node:events');
 
 const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dms-app-test-'));
 process.env.STORAGE_DIR = storageDirectory;
+process.env.MAX_UPLOAD_SIZE_BYTES = '32';
 const app = require('../src/app');
 const documentsController = require('../src/controllers/documents.controller');
 
@@ -64,6 +65,50 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   const downloadResponse = await fetch(`${baseUrl}/documents/${document.id}/download`);
   assert.strictEqual(downloadResponse.status, 200);
   assert.strictEqual(await downloadResponse.text(), 'documento de teste');
+
+  const emptyFormData = new FormData();
+  const missingFileResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: emptyFormData
+  });
+  assert.strictEqual(missingFileResponse.status, 400);
+  assert.strictEqual((await missingFileResponse.json()).error.code, 'FILE_REQUIRED');
+
+  const oversizedFormData = new FormData();
+  oversizedFormData.append('file', new Blob(['x'.repeat(33)], { type: 'text/plain' }), 'grande.txt');
+  const oversizedResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: oversizedFormData
+  });
+  assert.strictEqual(oversizedResponse.status, 413);
+  assert.strictEqual((await oversizedResponse.json()).error.code, 'LIMIT_FILE_SIZE');
+
+  const unknownDocumentResponse = await fetch(`${baseUrl}/documents/00000000-0000-4000-8000-000000000000/download`);
+  assert.strictEqual(unknownDocumentResponse.status, 404);
+  assert.strictEqual((await unknownDocumentResponse.json()).error.code, 'DOCUMENT_NOT_FOUND');
+
+  const storedFile = fs.readdirSync(storageDirectory).find((fileName) => fileName.endsWith('.txt'));
+  assert.ok(storedFile);
+  fs.unlinkSync(path.join(storageDirectory, storedFile));
+  const missingLocalFileResponse = await fetch(`${baseUrl}/documents/${document.id}/download`);
+  assert.strictEqual(missingLocalFileResponse.status, 404);
+  assert.strictEqual((await missingLocalFileResponse.json()).error.code, 'DOCUMENT_NOT_FOUND');
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  const newerFormData = new FormData();
+  newerFormData.append('file', new Blob(['documento mais recente'], { type: 'text/plain' }), 'mais-recente.txt');
+  const newerUploadResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: newerFormData
+  });
+  assert.strictEqual(newerUploadResponse.status, 201);
+  const { data: { document: newerDocument } } = await newerUploadResponse.json();
+  assert.ok(newerDocument.uploadedAt > document.uploadedAt);
+
+  const newestListResponse = await fetch(`${baseUrl}/documents`);
+  assert.strictEqual(newestListResponse.status, 200);
+  const { data: { documents: newestDocuments } } = await newestListResponse.json();
+  assert.deepStrictEqual(newestDocuments.map(({ id }) => id), [newerDocument.id, document.id]);
 
   const rejectedFormData = new FormData();
   rejectedFormData.append('file', new Blob(['imagem'], { type: 'image/png' }), 'imagem.png');
