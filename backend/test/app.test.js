@@ -3,6 +3,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { once } = require('node:events');
 
 const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dms-app-test-'));
@@ -18,6 +19,17 @@ test.after(() => {
 test('o app backend é exportado', () => {
   assert.ok(app, 'o app deve estar definido');
   assert.strictEqual(typeof app, 'function', 'o app Express deve ser uma função');
+});
+
+test('ALLOWED_MIME_TYPES rejeita tipos fora da allowlist padrão', () => {
+  const result = spawnSync(process.execPath, ['-e', "require('./src/routes/documents.routes')"], {
+    cwd: path.resolve(__dirname, '..'),
+    env: { ...process.env, ALLOWED_MIME_TYPES: 'image/png' },
+    encoding: 'utf8'
+  });
+
+  assert.notStrictEqual(result.status, 0);
+  assert.match(result.stderr, /ALLOWED_MIME_TYPES only supports built-in MIME types/);
 });
 
 test('upload, listagem e download de documentos funcionam pela aplicação', async (context) => {

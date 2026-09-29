@@ -31,6 +31,12 @@ const extensionMimeTypes = {
 const configuredMimeTypes = process.env.ALLOWED_MIME_TYPES
   ? process.env.ALLOWED_MIME_TYPES.split(',').map((mimeType) => mimeType.trim().toLowerCase()).filter(Boolean)
   : [...defaultMimeTypes];
+const unsupportedMimeTypes = configuredMimeTypes.filter((mimeType) => !defaultMimeTypes.has(mimeType));
+
+if (unsupportedMimeTypes.length > 0) {
+  throw new Error(`ALLOWED_MIME_TYPES only supports built-in MIME types: ${unsupportedMimeTypes.join(', ')}`);
+}
+
 const allowedMimeTypes = new Set(configuredMimeTypes);
 const configuredLimit = Number(process.env.MAX_UPLOAD_SIZE_BYTES);
 const maxUploadSize = Number.isSafeInteger(configuredLimit) && configuredLimit > 0

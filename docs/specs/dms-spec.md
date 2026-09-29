@@ -46,7 +46,7 @@ Entregar uma aplicação web simples para enviar, listar e baixar documentos, ar
 | RNF-01 | Os arquivos são armazenados no filesystem local em `backend/storage`, usando Multer com `diskStorage`. |
 | RNF-02 | Os metadados são mantidos em memória; reiniciar o backend os remove, mesmo que os arquivos físicos permaneçam no disco. |
 | RNF-03 | O limite padrão de upload é 10 MiB e pode ser ajustado por variável de ambiente. |
-| RNF-04 | A allowlist padrão aceita PDF, DOC, DOCX, TXT e RTF e pode ser configurada por ambiente. |
+| RNF-04 | A allowlist padrão aceita PDF, DOC, DOCX, TXT e RTF; a configuração por ambiente pode somente restringir os tipos suportados. |
 | RNF-05 | O nome físico do arquivo é gerado pela aplicação. Caminhos locais e nomes físicos não são expostos pela API. |
 | RNF-06 | A configuração operacional, incluindo porta, diretório e limites, é feita por variáveis de ambiente, em linha com 12-Factor App. |
 | RNF-07 | O backend usa Node.js, Express e CommonJS; o frontend usa React e Vite. A implementação permanece em JavaScript. |
@@ -64,7 +64,7 @@ Os nomes abaixo são propostas para a implementação; devem ser usados de forma
 | `PORT` | `3000` | Porta HTTP do backend. |
 | `STORAGE_DIR` | `backend/storage` | Diretório local dos arquivos. |
 | `MAX_UPLOAD_SIZE_BYTES` | `10485760` | Limite por arquivo (10 MiB). |
-| `ALLOWED_MIME_TYPES` | PDF, DOC, DOCX, TXT e RTF | Tipos de mídia permitidos, em lista separada por vírgulas. |
+| `ALLOWED_MIME_TYPES` | PDF, DOC, DOCX, TXT e RTF | Subconjunto, em lista separada por vírgulas, dos tipos de mídia suportados. Tipos fora da allowlist padrão não são aceitos. |
 | `DEFAULT_OWNER` | `default` | Owner atribuído aos documentos nesta fase sem autenticação. |
 
 O tipo de mídia enviado pelo cliente não comprova o conteúdo real do arquivo. A validação por tipo e extensão deve ser tratada como uma allowlist de entrada, sem usá-la como garantia de segurança do conteúdo.
