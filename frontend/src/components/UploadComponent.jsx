@@ -15,8 +15,12 @@ export default function UploadComponent({ onUpload, isUploading }) {
     event.preventDefault();
     if (!selectedFile || isUploading) return;
 
+    const form = event.currentTarget;
     const uploaded = await onUpload(selectedFile);
-    if (uploaded) setSelectedFile(null);
+    if (uploaded) {
+      form.reset();
+      setSelectedFile(null);
+    }
   }
 
   return (
