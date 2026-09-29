@@ -54,6 +54,8 @@ function handleError(error, req, res, next) {
     FILE_REQUIRED: [400, 'Envie um arquivo no campo file.'],
     FILE_TYPE_NOT_ALLOWED: [415, 'O tipo do arquivo não é permitido.'],
     LIMIT_FILE_SIZE: [413, 'O arquivo excede o tamanho máximo permitido.'],
+    LIMIT_FIELD_COUNT: [400, 'Não envie campos adicionais no formulário.'],
+    LIMIT_PART_COUNT: [400, 'Envie somente um arquivo no formulário.'],
     LIMIT_UNEXPECTED_FILE: [400, 'Envie um único arquivo no campo file.'],
     DOCUMENT_NOT_FOUND: [404, 'Documento não encontrado.']
   };

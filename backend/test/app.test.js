@@ -8,6 +8,7 @@ const { once } = require('node:events');
 const storageDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dms-app-test-'));
 process.env.STORAGE_DIR = storageDirectory;
 const app = require('../src/app');
+const documentsController = require('../src/controllers/documents.controller');
 
 test.after(() => {
   fs.rmSync(storageDirectory, { recursive: true, force: true });
@@ -61,4 +62,44 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   assert.strictEqual(rejectedResponse.status, 415);
   const { error } = await rejectedResponse.json();
   assert.strictEqual(error.code, 'FILE_TYPE_NOT_ALLOWED');
+
+  const fieldFormData = new FormData();
+  fieldFormData.append('file', new Blob(['documento'], { type: 'text/plain' }), 'campo.txt');
+  fieldFormData.append('extra', 'valor');
+  const fieldResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: fieldFormData
+  });
+  assert.strictEqual(fieldResponse.status, 400);
+  assert.strictEqual((await fieldResponse.json()).error.code, 'LIMIT_FIELD_COUNT');
+
+  const partsFormData = new FormData();
+  partsFormData.append('file', new Blob(['documento'], { type: 'text/plain' }), 'primeiro.txt');
+  partsFormData.append('file', new Blob(['documento'], { type: 'text/plain' }), 'segundo.txt');
+  const partsResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: partsFormData
+  });
+  assert.strictEqual(partsResponse.status, 400);
+  assert.strictEqual((await partsResponse.json()).error.code, 'LIMIT_UNEXPECTED_FILE');
+});
+
+test('multipart part-count errors are returned as client errors', () => {
+  const response = {
+    statusCode: null,
+    body: null,
+    status(statusCode) {
+      this.statusCode = statusCode;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    }
+  };
+
+  documentsController.handleError({ code: 'LIMIT_PART_COUNT' }, {}, response, () => {});
+
+  assert.strictEqual(response.statusCode, 400);
+  assert.strictEqual(response.body.error.code, 'LIMIT_PART_COUNT');
 });
