@@ -7,6 +7,7 @@ import './App.css';
 export default function App() {
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [listError, setListError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
@@ -18,12 +19,16 @@ export default function App() {
     async function refreshDocuments() {
       setIsLoading(true);
       setErrorMessage('');
+      setListError(false);
 
       try {
         const result = await listDocuments();
         if (isCurrent) setDocuments(result);
       } catch (error) {
-        if (isCurrent) setErrorMessage(error.message);
+        if (isCurrent) {
+          setErrorMessage(error.message);
+          setListError(true);
+        }
       } finally {
         if (isCurrent) setIsLoading(false);
       }
@@ -136,6 +141,8 @@ export default function App() {
           <DocumentList
             documents={documents}
             isLoading={isLoading}
+            listError={listError}
+            onRetry={() => setRefreshCount((count) => count + 1)}
             onDownloadError={handleDownloadError}
           />
         </section>

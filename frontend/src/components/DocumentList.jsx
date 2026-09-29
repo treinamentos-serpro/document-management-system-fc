@@ -23,9 +23,20 @@ function getFileType(document) {
     : document.mimeType || 'ARQUIVO';
 }
 
-export default function DocumentList({ documents, isLoading, onDownloadError }) {
+export default function DocumentList({ documents, isLoading, listError, onRetry, onDownloadError }) {
   if (isLoading && documents.length === 0) {
     return <p className="list-message" role="status">Carregando documentos...</p>;
+  }
+
+  if (!isLoading && listError && documents.length === 0) {
+    return (
+      <div className="list-message" role="alert">
+        <p>Não foi possível carregar os documentos.</p>
+        <button className="refresh-button" type="button" onClick={onRetry}>
+          Tentar novamente
+        </button>
+      </div>
+    );
   }
 
   if (!isLoading && documents.length === 0) {
