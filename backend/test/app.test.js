@@ -63,6 +63,14 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   const { error } = await rejectedResponse.json();
   assert.strictEqual(error.code, 'FILE_TYPE_NOT_ALLOWED');
 
+  const malformedResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'multipart/form-data' },
+    body: ''
+  });
+  assert.strictEqual(malformedResponse.status, 400);
+  assert.strictEqual((await malformedResponse.json()).error.code, 'INVALID_MULTIPART');
+
   const fieldFormData = new FormData();
   fieldFormData.append('file', new Blob(['documento'], { type: 'text/plain' }), 'campo.txt');
   fieldFormData.append('extra', 'valor');
@@ -102,4 +110,10 @@ test('multipart part-count errors are returned as client errors', () => {
 
   assert.strictEqual(response.statusCode, 400);
   assert.strictEqual(response.body.error.code, 'LIMIT_PART_COUNT');
+
+  documentsController.handleError({ code: 'EACCES', message: 'storage path unavailable' }, {}, response, () => {});
+
+  assert.strictEqual(response.statusCode, 500);
+  assert.strictEqual(response.body.error.code, 'INTERNAL_ERROR');
+  assert.strictEqual(response.body.error.message, 'Não foi possível processar a solicitação.');
 });

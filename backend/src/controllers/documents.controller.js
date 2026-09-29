@@ -57,6 +57,7 @@ function handleError(error, req, res, next) {
     LIMIT_FIELD_COUNT: [400, 'Não envie campos adicionais no formulário.'],
     LIMIT_PART_COUNT: [400, 'Envie somente um arquivo no formulário.'],
     LIMIT_UNEXPECTED_FILE: [400, 'Envie um único arquivo no campo file.'],
+    INVALID_MULTIPART: [400, 'Requisição multipart inválida.'],
     DOCUMENT_NOT_FOUND: [404, 'Documento não encontrado.']
   };
   const [statusCode, message] = knownErrors[error.code] || [500, 'Não foi possível processar a solicitação.'];

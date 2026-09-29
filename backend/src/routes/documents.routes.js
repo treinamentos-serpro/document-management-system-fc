@@ -69,7 +69,24 @@ const upload = multer({
   }
 });
 
-router.post('/upload', upload.single('file'), documentsController.uploadDocument);
+const uploadSingleFile = upload.single('file');
+const multipartParserErrors = new Set([
+  'Multipart: Boundary not found',
+  'Malformed part header',
+  'Unexpected end of file',
+  'Unexpected end of form'
+]);
+
+function handleUploadError(req, res, next) {
+  uploadSingleFile(req, res, (error) => {
+    if (error && multipartParserErrors.has(error.message)) {
+      error.code = 'INVALID_MULTIPART';
+    }
+    next(error);
+  });
+}
+
+router.post('/upload', handleUploadError, documentsController.uploadDocument);
 router.get('/documents', documentsController.listDocuments);
 router.get('/documents/:id/download', documentsController.downloadDocument);
 router.use(documentsController.handleError);
