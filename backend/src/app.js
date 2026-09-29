@@ -11,14 +11,26 @@
 // usando multer com diskStorage. Não utilize provedores externos.
 
 const express = require('express');
+const documentsRoutes = require('./routes/documents.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(documentsRoutes);
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
 
-// Endpoint de verificação de saúde. As demais rotas (/upload, /documents,
-// /documents/:id/download) serão implementadas durante o Passo 2.
+  const invalidJson = error.status === 400 && error.type === 'entity.parse.failed';
+  res.status(invalidJson ? 400 : 500).json({
+    error: {
+      code: invalidJson ? 'INVALID_JSON' : 'INTERNAL_ERROR',
+      message: invalidJson ? 'JSON inválido.' : 'Não foi possível processar a solicitação.'
+    }
+  });
+});
+
+// Endpoint de verificação de saúde.
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
