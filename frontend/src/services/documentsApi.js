@@ -1,5 +1,17 @@
 const API_BASE_PATH = '/api';
 
+async function request(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch {
+    const error = new Error(
+      'Não foi possível se comunicar com o servidor. Verifique sua conexão e tente novamente.'
+    );
+    error.code = 'NETWORK_ERROR';
+    throw error;
+  }
+}
+
 async function readError(response) {
   const payload = await response.json().catch(() => null);
   const error = new Error(
@@ -11,7 +23,7 @@ async function readError(response) {
 }
 
 export async function listDocuments() {
-  const response = await fetch(`${API_BASE_PATH}/documents`);
+  const response = await request(`${API_BASE_PATH}/documents`);
   if (!response.ok) throw await readError(response);
 
   const payload = await response.json();
@@ -22,7 +34,7 @@ export async function uploadDocument(file) {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE_PATH}/upload`, {
+  const response = await request(`${API_BASE_PATH}/upload`, {
     method: 'POST',
     body: formData
   });
@@ -33,7 +45,7 @@ export async function uploadDocument(file) {
 }
 
 export async function downloadDocument(document) {
-  const response = await fetch(
+  const response = await request(
     `${API_BASE_PATH}/documents/${encodeURIComponent(document.id)}/download`
   );
   if (!response.ok) throw await readError(response);
