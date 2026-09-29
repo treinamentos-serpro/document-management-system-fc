@@ -13,8 +13,7 @@ test.after(() => {
   fs.rmSync(storageDirectory, { recursive: true, force: true });
 });
 
-// Teste de fumaça do seed: garante que o app Express foi exportado.
-// Novos testes serão adicionados durante os Steps 2, 6 e 7 com auxílio do Copilot.
+// Garante que o app Express foi exportado.
 test('o app backend é exportado', () => {
   assert.ok(app, 'o app deve estar definido');
   assert.strictEqual(typeof app, 'function', 'o app Express deve ser uma função');
@@ -28,6 +27,10 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   }));
 
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
+  const healthResponse = await fetch(`${baseUrl}/health`);
+  assert.strictEqual(healthResponse.status, 200);
+  assert.deepStrictEqual(await healthResponse.json(), { status: 'ok' });
+
   const formData = new FormData();
   formData.append('file', new Blob(['documento de teste'], { type: 'text/plain' }), 'teste.txt');
 
@@ -48,4 +51,14 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   const downloadResponse = await fetch(`${baseUrl}/documents/${document.id}/download`);
   assert.strictEqual(downloadResponse.status, 200);
   assert.strictEqual(await downloadResponse.text(), 'documento de teste');
+
+  const rejectedFormData = new FormData();
+  rejectedFormData.append('file', new Blob(['imagem'], { type: 'image/png' }), 'imagem.png');
+  const rejectedResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: rejectedFormData
+  });
+  assert.strictEqual(rejectedResponse.status, 415);
+  const { error } = await rejectedResponse.json();
+  assert.strictEqual(error.code, 'FILE_TYPE_NOT_ALLOWED');
 });
