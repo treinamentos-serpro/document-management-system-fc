@@ -7,14 +7,14 @@ function createHttpError(statusCode, code, message) {
   return error;
 }
 
-function uploadDocument(req, res, next) {
+async function uploadDocument(req, res, next) {
   if (!req.file) {
     next(createHttpError(400, 'FILE_REQUIRED', 'Envie um arquivo no campo file.'));
     return;
   }
 
   try {
-    const document = documentsService.registerDocument(req.file);
+    const document = await documentsService.registerDocument(req.file);
     res.status(201).json({ data: { document } });
   } catch (error) {
     next(error);
@@ -53,6 +53,7 @@ function handleError(error, req, res, next) {
   const knownErrors = {
     FILE_REQUIRED: [400, 'Envie um arquivo no campo file.'],
     FILE_TYPE_NOT_ALLOWED: [415, 'O tipo do arquivo não é permitido.'],
+    FILE_CONTENT_INVALID: [415, 'O conteúdo não corresponde ao tipo de arquivo informado.'],
     LIMIT_FILE_SIZE: [413, 'O arquivo excede o tamanho máximo permitido.'],
     LIMIT_FIELD_COUNT: [400, 'Não envie campos adicionais no formulário.'],
     LIMIT_PART_COUNT: [400, 'Envie somente um arquivo no formulário.'],

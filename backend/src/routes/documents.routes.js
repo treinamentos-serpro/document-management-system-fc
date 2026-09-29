@@ -3,14 +3,10 @@ const multer = require('multer');
 const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { storageDirectory } = require('../config/storage');
 const documentsController = require('../controllers/documents.controller');
 
 const router = express.Router();
-const projectRoot = path.resolve(__dirname, '../../..');
-const storageDirectory = path.resolve(
-  projectRoot,
-  process.env.STORAGE_DIR || 'backend/storage'
-);
 const defaultMimeTypes = new Set([
   'application/pdf',
   'application/msword',

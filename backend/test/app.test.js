@@ -11,6 +11,7 @@ process.env.STORAGE_DIR = storageDirectory;
 process.env.MAX_UPLOAD_SIZE_BYTES = '32';
 const app = require('../src/app');
 const documentsController = require('../src/controllers/documents.controller');
+const { resolveStoragePath } = require('../src/config/storage');
 
 test.after(() => {
   fs.rmSync(storageDirectory, { recursive: true, force: true });
@@ -20,6 +21,11 @@ test.after(() => {
 test('o app backend é exportado', () => {
   assert.ok(app, 'o app deve estar definido');
   assert.strictEqual(typeof app, 'function', 'o app Express deve ser uma função');
+});
+
+test('caminhos de armazenamento não aceitam nomes com traversal', () => {
+  assert.throws(() => resolveStoragePath('../fora.txt'), /Nome de armazenamento inválido/);
+  assert.throws(() => resolveStoragePath(path.join('subdir', 'arquivo.txt')), /Nome de armazenamento inválido/);
 });
 
 test('ALLOWED_MIME_TYPES rejeita tipos fora da allowlist padrão', () => {
@@ -55,6 +61,8 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   assert.strictEqual(uploadResponse.status, 201);
   const { data: { document } } = await uploadResponse.json();
   assert.strictEqual(document.originalName, 'teste.txt');
+  assert.ok(!Object.hasOwn(document, 'storageName'));
+  assert.ok(!Object.hasOwn(document, 'storagePath'));
 
   const listResponse = await fetch(`${baseUrl}/documents`);
   assert.strictEqual(listResponse.status, 200);
@@ -89,6 +97,7 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
 
   const storedFile = fs.readdirSync(storageDirectory).find((fileName) => fileName.endsWith('.txt'));
   assert.ok(storedFile);
+  assert.match(storedFile, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.txt$/i);
   fs.unlinkSync(path.join(storageDirectory, storedFile));
   const missingLocalFileResponse = await fetch(`${baseUrl}/documents/${document.id}/download`);
   assert.strictEqual(missingLocalFileResponse.status, 404);
@@ -120,6 +129,16 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   const { error } = await rejectedResponse.json();
   assert.strictEqual(error.code, 'FILE_TYPE_NOT_ALLOWED');
 
+  const invalidPdfFormData = new FormData();
+  invalidPdfFormData.append('file', new Blob(['não é um PDF'], { type: 'application/pdf' }), 'falso.pdf');
+  const invalidPdfResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: invalidPdfFormData
+  });
+  assert.strictEqual(invalidPdfResponse.status, 415);
+  assert.strictEqual((await invalidPdfResponse.json()).error.code, 'FILE_CONTENT_INVALID');
+  assert.ok(!fs.readdirSync(storageDirectory).some((fileName) => fileName.endsWith('.pdf')));
+
   const malformedResponse = await fetch(`${baseUrl}/upload`, {
     method: 'POST',
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -147,6 +166,33 @@ test('upload, listagem e download de documentos funcionam pela aplicação', asy
   });
   assert.strictEqual(partsResponse.status, 400);
   assert.strictEqual((await partsResponse.json()).error.code, 'LIMIT_UNEXPECTED_FILE');
+
+  const binaryTextFormData = new FormData();
+  const fileCountBeforeInvalidText = fs.readdirSync(storageDirectory).length;
+  binaryTextFormData.append(
+    'file',
+    new Blob([new Uint8Array([0, 255, 1])], { type: 'text/plain' }),
+    'binario.txt'
+  );
+  const binaryTextResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: binaryTextFormData
+  });
+  assert.strictEqual(binaryTextResponse.status, 415);
+  assert.strictEqual((await binaryTextResponse.json()).error.code, 'FILE_CONTENT_INVALID');
+  assert.strictEqual(fs.readdirSync(storageDirectory).length, fileCountBeforeInvalidText);
+
+  const validPdfFormData = new FormData();
+  validPdfFormData.append(
+    'file',
+    new Blob(['%PDF-1.7\n%%EOF'], { type: 'application/pdf' }),
+    'valido.pdf'
+  );
+  const validPdfResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: validPdfFormData
+  });
+  assert.strictEqual(validPdfResponse.status, 201);
 });
 
 test('multipart part-count errors are returned as client errors', () => {

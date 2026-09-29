@@ -1,24 +1,37 @@
 const { randomUUID } = require('node:crypto');
 const documentsRepository = require('../repositories/documents.repository');
+const storageRepository = require('../repositories/storage.repository');
+const { hasExpectedContent } = require('./file-validation.service');
 
 function toPublicDocument(document) {
-  const { storagePath, ...publicDocument } = document;
+  const { storageName, storagePath, ...publicDocument } = document;
   return publicDocument;
 }
 
-function registerDocument(file) {
-  const document = {
-    id: randomUUID(),
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    size: file.size,
-    uploadedAt: new Date().toISOString(),
-    owner: process.env.DEFAULT_OWNER || 'default',
-    storagePath: file.path
-  };
+async function registerDocument(file) {
+  try {
+    if (!(await hasExpectedContent(file))) {
+      const error = new Error('O conteúdo não corresponde ao tipo de arquivo informado.');
+      error.code = 'FILE_CONTENT_INVALID';
+      throw error;
+    }
 
-  documentsRepository.add(document);
-  return toPublicDocument(document);
+    const document = {
+      id: randomUUID(),
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      uploadedAt: new Date().toISOString(),
+      owner: process.env.DEFAULT_OWNER || 'default',
+      storageName: file.filename
+    };
+
+    documentsRepository.add(document);
+    return toPublicDocument(document);
+  } catch (error) {
+    await storageRepository.removeUploadedFile(file).catch(() => {});
+    throw error;
+  }
 }
 
 function listDocuments() {
@@ -34,7 +47,7 @@ function getDownload(id) {
 
   return {
     document: toPublicDocument(document),
-    storagePath: document.storagePath
+    storagePath: storageRepository.resolveStoragePath(document.storageName)
   };
 }
 

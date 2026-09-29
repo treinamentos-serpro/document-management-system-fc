@@ -69,6 +69,8 @@ Os nomes abaixo são propostas para a implementação; devem ser usados de forma
 
 O tipo de mídia enviado pelo cliente não comprova o conteúdo real do arquivo. A validação por tipo e extensão deve ser tratada como uma allowlist de entrada, sem usá-la como garantia de segurança do conteúdo.
 
+O backend também confere assinaturas básicas dos formatos aceitos e valida arquivos TXT como UTF-8 sem bytes nulos. Essas verificações reduzem uploads acidentais ou evidentemente incompatíveis, mas não substituem parsers completos, análise antivírus ou uma garantia de que o conteúdo é seguro.
+
 ## 5. Modelo de dados
 
 ### Metadados públicos do documento

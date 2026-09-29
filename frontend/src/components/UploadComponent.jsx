@@ -1,12 +1,7 @@
 import { useState } from 'react';
+import formatFileSize from '../utils/formatFileSize.js';
 
 const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.txt,.rtf';
-
-function formatFileSize(size) {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(0)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default function UploadComponent({ onUpload, isUploading }) {
   const [selectedFile, setSelectedFile] = useState(null);
