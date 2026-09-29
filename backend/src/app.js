@@ -18,6 +18,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(documentsRoutes);
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+
+  const invalidJson = error.status === 400 && error.type === 'entity.parse.failed';
+  res.status(invalidJson ? 400 : 500).json({
+    error: {
+      code: invalidJson ? 'INVALID_JSON' : 'INTERNAL_ERROR',
+      message: invalidJson ? 'JSON inválido.' : 'Não foi possível processar a solicitação.'
+    }
+  });
+});
 
 // Endpoint de verificação de saúde.
 app.get('/health', (req, res) => {
